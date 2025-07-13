@@ -1,0 +1,70 @@
+name: Claude PR Review with Slack
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  pr-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}                     # ブランチを作成しない場合の設定
+          # create_branch: false        
+          # MCPサーバー設定（.mcp.jsonの設定に環境変数を追加）
+          mcp_config: |
+            {
+              "mcpServers": {
+                "slack": {
+                  "command": "docker",
+                  "args": [
+                    "run",
+                    "-i",
+                    "--rm",
+                    "-e",
+                    "SLACK_BOT_TOKEN",
+                    "-e",
+                    "SLACK_TEAM_ID",
+                    "-e",
+                    "SLACK_CHANNEL_IDS",
+                    "mcp/slack"
+                  ],
+                  "env": {
+                    "SLACK_BOT_TOKEN": "${{ secrets.SLACK_BOT_TOKEN }}",
+                    "SLACK_TEAM_ID": "${{ secrets.SLACK_TEAM_ID }}",
+                    "SLACK_CHANNEL_IDS": "${{ secrets.SLACK_CHANNEL_ID }}"
+                  }
+                }
+              }
+            }
+          
+          # Slackツールを許可
+          allowed_tools: |
+            Read
+            Grep
+            mcp__slack__slack_list_channels
+            mcp__slack__slack_post_message
+            mcp__slack__slack_get_channel_history
+            mcp__slack__slack_get_users
+          
+          # レビュー実行とSlack通知
+          direct_prompt: |
+            PR #${{ github.event.pull_request.number }} を日本語でレビューして、
+            結果を以下の形式でSlackに送信してください：
+            
+            🔍 PR: ${{ github.event.pull_request.title }}
+            👤 作成者: ${{ github.event.pull_request.user.login }}
+            
+            📝 レビュー結果:
+            [ここにレビュー内容]
+            
+            🔗 ${{ github.event.pull_request.html_url }}
