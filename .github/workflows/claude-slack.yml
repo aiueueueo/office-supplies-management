@@ -18,8 +18,9 @@ jobs:
 
       - uses: anthropics/claude-code-action@beta
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}                     # ブランチを作成しない場合の設定
-          # create_branch: false        
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}  # 権限エラー回避のため追加
+          create_branch: false  # PRへの直接コメントのみ        
           # MCPサーバー設定（.mcp.jsonの設定に環境変数を追加）
           mcp_config: |
             {
