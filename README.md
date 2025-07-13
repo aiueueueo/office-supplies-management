@@ -29,5 +29,24 @@
 - 在庫一覧
 - 出入庫履歴
 
+## 開発状況
+- ✅ プロジェクト基本構成完了
+- ✅ データベース設計完了
+- ✅ Blazor管理画面実装完了
+- ✅ Flutter出庫端末実装完了
+- ✅ Claude Code Actions設定完了
+- 🔄 API実装中（TODO.md参照）
+
 ## セットアップ
-（後日追記）
+詳細は `docs/TODO.md` を参照してください。
+
+### 必要な環境
+- .NET 8.0 SDK
+- SQL Server
+- Flutter SDK（モバイルアプリ開発時）
+
+### クイックスタート
+1. リポジトリをクローン
+2. データベースセットアップ（`database/schema/`のSQLを実行）
+3. バックエンド起動：`cd backend && dotnet run --project OfficeSupplies.Web`
+4. 管理画面アクセス：`https://localhost:7001`
