@@ -129,6 +129,23 @@
   - データベース設計書
   - 環境構築手順書
 
+### 🔧 Slack連携デバッグ（緊急）
+- [ ] **Claude Code Actions実行ログ解析**
+  - GitHub Actions → Claude PR Review with Slack ワークフローの詳細ログ確認
+  - MCP Slack サーバーの接続状況チェック
+  - Docker実行エラーの有無確認
+  - 環境変数（SLACK_BOT_TOKEN, SLACK_TEAM_ID, SLACK_CHANNEL_ID）の値検証
+
+- [ ] **Slack Bot設定再確認**
+  - Bot Token Scopesの権限確認（chat:write, channels:read等）
+  - ワークスペースへのBot追加状況確認
+  - 対象チャンネルへのBot招待状況確認
+
+- [ ] **MCPサーバー設定見直し**
+  - Docker イメージ mcp/slack の存在確認
+  - allowed_tools設定の妥当性確認
+  - MCPサーバー起動ログの確認
+
 ## 将来的な機能拡張（優先度低）
 
 ### 10. 追加機能
