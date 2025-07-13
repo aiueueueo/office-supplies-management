@@ -1,0 +1,206 @@
+@page "/departments"
+@using Microsoft.EntityFrameworkCore
+@using OfficeSupplies.Core.Entities
+@using OfficeSupplies.Infrastructure.Data
+@inject OfficeSuppliesContext Context
+@rendermode InteractiveServer
+
+<PageTitle>部署管理</PageTitle>
+
+<h3>部署管理</h3>
+
+<div class="row mb-3">
+    <div class="col">
+        <button class="btn btn-primary" @onclick="ShowAddModal">
+            <i class="bi bi-plus"></i> 新規登録
+        </button>
+    </div>
+</div>
+
+@if (departments == null)
+{
+    <p><em>読み込み中...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>部署コード</th>
+                <th>部署名</th>
+                <th>状態</th>
+                <th>登録日時</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var dept in departments)
+            {
+                <tr>
+                    <td>@dept.DepartmentCode</td>
+                    <td>@dept.DepartmentName</td>
+                    <td>
+                        @if (dept.IsActive)
+                        {
+                            <span class="badge bg-success">有効</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">無効</span>
+                        }
+                    </td>
+                    <td>@dept.CreatedAt.ToString("yyyy/MM/dd")</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" @onclick="() => ShowEditModal(dept)">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        @if (dept.IsActive)
+                        {
+                            <button class="btn btn-sm btn-danger ms-1" @onclick="() => DeactivateDepartment(dept)">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-success ms-1" @onclick="() => ActivateDepartment(dept)">
+                                <i class="bi bi-check-circle"></i>
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- 新規登録/編集モーダル -->
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEdit ? "部署編集" : "部署新規登録")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@currentDepartment" OnValidSubmit="@SaveDepartment">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-3">
+                            <label class="form-label">部署コード</label>
+                            <InputText class="form-control" @bind-Value="currentDepartment.DepartmentCode" placeholder="例：HR, GA, SALES" />
+                            <div class="form-text">英数字で入力してください（例：HR, GA, SALES）</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">部署名</label>
+                            <InputText class="form-control" @bind-Value="currentDepartment.DepartmentName" placeholder="例：人事部" />
+                        </div>
+
+                        @if (isEdit)
+                        {
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="currentDepartment.IsActive" />
+                                    <label class="form-check-label">有効</label>
+                                </div>
+                            </div>
+                        }
+
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <button type="button" class="btn btn-secondary" @onclick="CloseModal">キャンセル</button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private List<Department>? departments;
+    private bool showModal = false;
+    private bool isEdit = false;
+    private Department currentDepartment = new Department();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDepartments();
+    }
+
+    private async Task LoadDepartments()
+    {
+        departments = await Context.Departments
+            .OrderBy(d => d.DepartmentCode)
+            .ToListAsync();
+    }
+
+    private void ShowAddModal()
+    {
+        currentDepartment = new Department();
+        isEdit = false;
+        showModal = true;
+    }
+
+    private void ShowEditModal(Department dept)
+    {
+        currentDepartment = new Department
+        {
+            DepartmentId = dept.DepartmentId,
+            DepartmentCode = dept.DepartmentCode,
+            DepartmentName = dept.DepartmentName,
+            IsActive = dept.IsActive,
+            CreatedAt = dept.CreatedAt
+        };
+        isEdit = true;
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+    }
+
+    private async Task SaveDepartment()
+    {
+        if (isEdit)
+        {
+            var dept = await Context.Departments.FindAsync(currentDepartment.DepartmentId);
+            if (dept != null)
+            {
+                dept.DepartmentCode = currentDepartment.DepartmentCode;
+                dept.DepartmentName = currentDepartment.DepartmentName;
+                dept.IsActive = currentDepartment.IsActive;
+                dept.UpdatedAt = DateTime.Now;
+            }
+        }
+        else
+        {
+            currentDepartment.CreatedAt = DateTime.Now;
+            currentDepartment.UpdatedAt = DateTime.Now;
+            Context.Departments.Add(currentDepartment);
+        }
+
+        await Context.SaveChangesAsync();
+        await LoadDepartments();
+        CloseModal();
+    }
+
+    private async Task DeactivateDepartment(Department dept)
+    {
+        dept.IsActive = false;
+        dept.UpdatedAt = DateTime.Now;
+        await Context.SaveChangesAsync();
+        await LoadDepartments();
+    }
+
+    private async Task ActivateDepartment(Department dept)
+    {
+        dept.IsActive = true;
+        dept.UpdatedAt = DateTime.Now;
+        await Context.SaveChangesAsync();
+        await LoadDepartments();
+    }
+}

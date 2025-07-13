@@ -1,0 +1,247 @@
+@page "/stock-in"
+@using Microsoft.EntityFrameworkCore
+@using OfficeSupplies.Core.Entities
+@using OfficeSupplies.Infrastructure.Data
+@inject OfficeSuppliesContext Context
+@rendermode InteractiveServer
+
+<PageTitle>入庫処理</PageTitle>
+
+<h3>入庫処理</h3>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>入庫情報入力</h5>
+            </div>
+            <div class="card-body">
+                <EditForm Model="@stockInModel" OnValidSubmit="@ProcessStockIn">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="mb-3">
+                        <label class="form-label">物品選択</label>
+                        <select class="form-select" @bind="stockInModel.ItemId" @onchange="OnItemSelected">
+                            <option value="0">-- 物品を選択してください --</option>
+                            @if (items != null)
+                            {
+                                @foreach (var item in items)
+                                {
+                                    <option value="@item.ItemId">@item.ItemName (@item.ItemCode)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    @if (selectedItem != null)
+                    {
+                        <div class="mb-3">
+                            <div class="alert alert-info">
+                                <strong>@selectedItem.ItemName</strong><br/>
+                                物品コード: @selectedItem.ItemCode<br/>
+                                現在庫数: @selectedItem.CurrentStock @selectedItem.Unit<br/>
+                                最小在庫数: @selectedItem.MinimumStock @selectedItem.Unit
+                            </div>
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">入庫数量</label>
+                        <InputNumber class="form-control" @bind-Value="stockInModel.Quantity" min="1" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">備考</label>
+                        <InputTextArea class="form-control" @bind-Value="stockInModel.Remarks" rows="3" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">処理者名</label>
+                        <InputText class="form-control" @bind-Value="stockInModel.ProcessedBy" />
+                    </div>
+
+                    <button type="submit" class="btn btn-success" disabled="@(stockInModel.ItemId == 0 || stockInModel.Quantity <= 0 || string.IsNullOrEmpty(stockInModel.ProcessedBy))">
+                        <i class="bi bi-box-arrow-in-down"></i> 入庫処理実行
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>今日の入庫履歴</h5>
+            </div>
+            <div class="card-body">
+                @if (todayTransactions == null)
+                {
+                    <p><em>読み込み中...</em></p>
+                }
+                else if (!todayTransactions.Any())
+                {
+                    <p>今日の入庫処理はありません。</p>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var trans in todayTransactions)
+                        {
+                            <div class="list-group-item px-0">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">@trans.Item.ItemName</h6>
+                                    <small>@trans.ProcessedAt.ToString("HH:mm")</small>
+                                </div>
+                                <p class="mb-1">+@trans.Quantity @trans.Item.Unit</p>
+                                <small>@trans.ProcessedBy</small>
+                                @if (!trans.IsCancelled)
+                                {
+                                    <button class="btn btn-sm btn-outline-danger ms-2" @onclick="() => CancelTransaction(trans)">
+                                        取消
+                                    </button>
+                                }
+                                else
+                                {
+                                    <small class="text-muted ms-2">(取消済)</small>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 成功メッセージ -->
+@if (showSuccessMessage)
+{
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 11">
+        <div class="toast show" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto text-success">入庫完了</strong>
+                <button type="button" class="btn-close" @onclick="() => showSuccessMessage = false"></button>
+            </div>
+            <div class="toast-body">
+                入庫処理が正常に完了しました。
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Item>? items;
+    private List<Transaction>? todayTransactions;
+    private Item? selectedItem;
+    private StockInModel stockInModel = new StockInModel();
+    private bool showSuccessMessage = false;
+
+    public class StockInModel
+    {
+        public int ItemId { get; set; }
+        public int Quantity { get; set; } = 1;
+        public string Remarks { get; set; } = string.Empty;
+        public string ProcessedBy { get; set; } = string.Empty;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadItems();
+        await LoadTodayTransactions();
+    }
+
+    private async Task LoadItems()
+    {
+        items = await Context.Items
+            .Where(i => i.IsActive)
+            .OrderBy(i => i.ItemName)
+            .ToListAsync();
+    }
+
+    private async Task LoadTodayTransactions()
+    {
+        var today = DateTime.Today;
+        var tomorrow = today.AddDays(1);
+
+        todayTransactions = await Context.Transactions
+            .Include(t => t.Item)
+            .Where(t => t.TransactionType == "IN" && t.ProcessedAt >= today && t.ProcessedAt < tomorrow)
+            .OrderByDescending(t => t.ProcessedAt)
+            .ToListAsync();
+    }
+
+    private async Task OnItemSelected(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int itemId) && itemId > 0)
+        {
+            selectedItem = await Context.Items.FindAsync(itemId);
+        }
+        else
+        {
+            selectedItem = null;
+        }
+    }
+
+    private async Task ProcessStockIn()
+    {
+        if (selectedItem == null) return;
+
+        var transaction = new Transaction
+        {
+            ItemId = stockInModel.ItemId,
+            DepartmentId = 1, // 管理部署（固定）
+            TransactionType = "IN",
+            Quantity = stockInModel.Quantity,
+            BeforeStock = selectedItem.CurrentStock,
+            AfterStock = selectedItem.CurrentStock + stockInModel.Quantity,
+            Remarks = stockInModel.Remarks,
+            ProcessedBy = stockInModel.ProcessedBy,
+            ProcessedAt = DateTime.Now
+        };
+
+        // 在庫更新
+        selectedItem.CurrentStock += stockInModel.Quantity;
+        selectedItem.UpdatedAt = DateTime.Now;
+
+        Context.Transactions.Add(transaction);
+        await Context.SaveChangesAsync();
+
+        // リセット
+        stockInModel = new StockInModel();
+        selectedItem = null;
+        showSuccessMessage = true;
+
+        // データ再読み込み
+        await LoadItems();
+        await LoadTodayTransactions();
+
+        // 3秒後にメッセージを非表示
+        _ = Task.Delay(3000).ContinueWith(_ => {
+            showSuccessMessage = false;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private async Task CancelTransaction(Transaction trans)
+    {
+        if (trans.IsCancelled) return;
+
+        // 取引を取消状態に
+        trans.IsCancelled = true;
+        trans.CancelledAt = DateTime.Now;
+        trans.CancelledBy = "管理者"; // 実際のアプリでは現在のユーザー名
+
+        // 在庫を戻す
+        var item = await Context.Items.FindAsync(trans.ItemId);
+        if (item != null)
+        {
+            item.CurrentStock -= trans.Quantity;
+            item.UpdatedAt = DateTime.Now;
+        }
+
+        await Context.SaveChangesAsync();
+        await LoadItems();
+        await LoadTodayTransactions();
+    }
+}

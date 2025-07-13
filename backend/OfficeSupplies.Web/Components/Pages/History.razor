@@ -1,0 +1,282 @@
+@page "/history"
+@using Microsoft.EntityFrameworkCore
+@using OfficeSupplies.Core.Entities
+@using OfficeSupplies.Infrastructure.Data
+@inject OfficeSuppliesContext Context
+@rendermode InteractiveServer
+
+<PageTitle>取引履歴</PageTitle>
+
+<h3>取引履歴</h3>
+
+<!-- 検索フィルター -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h5>検索条件</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <label class="form-label">開始日</label>
+                <input type="date" class="form-control" @bind="startDate" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">終了日</label>
+                <input type="date" class="form-control" @bind="endDate" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">物品</label>
+                <select class="form-select" @bind="selectedItemId">
+                    <option value="0">-- すべて --</option>
+                    @if (items != null)
+                    {
+                        @foreach (var item in items)
+                        {
+                            <option value="@item.ItemId">@item.ItemName</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">部署</label>
+                <select class="form-select" @bind="selectedDepartmentId">
+                    <option value="0">-- すべて --</option>
+                    @if (departments != null)
+                    {
+                        @foreach (var dept in departments)
+                        {
+                            <option value="@dept.DepartmentId">@dept.DepartmentName</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-3">
+                <label class="form-label">取引種別</label>
+                <select class="form-select" @bind="selectedTransactionType">
+                    <option value="">-- すべて --</option>
+                    <option value="IN">入庫</option>
+                    <option value="OUT">出庫</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">状態</label>
+                <select class="form-select" @bind="showCancelled">
+                    <option value="false">有効のみ</option>
+                    <option value="true">すべて（取消含む）</option>
+                </select>
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+                <button class="btn btn-primary" @onclick="SearchTransactions">
+                    <i class="bi bi-search"></i> 検索
+                </button>
+                <button class="btn btn-secondary ms-2" @onclick="ClearFilters">
+                    <i class="bi bi-x-circle"></i> クリア
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 取引履歴テーブル -->
+@if (transactions == null)
+{
+    <p><em>読み込み中...</em></p>
+}
+else if (!transactions.Any())
+{
+    <div class="alert alert-info">
+        指定された条件に該当する取引履歴がありません。
+    </div>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <strong>@transactions.Count</strong> 件の取引が見つかりました
+        </div>
+        <div>
+            <button class="btn btn-success" @onclick="ExportToCsv">
+                <i class="bi bi-download"></i> CSV出力
+            </button>
+        </div>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>日時</th>
+                <th>物品名</th>
+                <th>部署</th>
+                <th>種別</th>
+                <th>数量</th>
+                <th>処理前在庫</th>
+                <th>処理後在庫</th>
+                <th>処理者</th>
+                <th>備考</th>
+                <th>状態</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var trans in transactions.OrderByDescending(t => t.ProcessedAt))
+            {
+                <tr class="@(trans.IsCancelled ? "table-secondary" : "")">
+                    <td>@trans.ProcessedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                    <td>@trans.Item.ItemName</td>
+                    <td>@trans.Department.DepartmentName</td>
+                    <td>
+                        @if (trans.TransactionType == "IN")
+                        {
+                            <span class="badge bg-success">入庫</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">出庫</span>
+                        }
+                    </td>
+                    <td>
+                        @if (trans.TransactionType == "IN")
+                        {
+                            <span class="text-success">+@trans.Quantity</span>
+                        }
+                        else
+                        {
+                            <span class="text-danger">-@trans.Quantity</span>
+                        }
+                    </td>
+                    <td>@trans.BeforeStock</td>
+                    <td>@trans.AfterStock</td>
+                    <td>@trans.ProcessedBy</td>
+                    <td>@trans.Remarks</td>
+                    <td>
+                        @if (trans.IsCancelled)
+                        {
+                            <span class="badge bg-secondary">取消済</span>
+                            <br/>
+                            <small class="text-muted">
+                                @trans.CancelledAt?.ToString("MM/dd HH:mm")<br/>
+                                @trans.CancelledBy
+                            </small>
+                        }
+                        else
+                        {
+                            <span class="badge bg-primary">有効</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Transaction>? transactions;
+    private List<Item>? items;
+    private List<Department>? departments;
+
+    // 検索条件
+    private DateTime startDate = DateTime.Today.AddMonths(-1);
+    private DateTime endDate = DateTime.Today;
+    private int selectedItemId = 0;
+    private int selectedDepartmentId = 0;
+    private string selectedTransactionType = "";
+    private bool showCancelled = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMasterData();
+        await SearchTransactions();
+    }
+
+    private async Task LoadMasterData()
+    {
+        items = await Context.Items
+            .Where(i => i.IsActive)
+            .OrderBy(i => i.ItemName)
+            .ToListAsync();
+
+        departments = await Context.Departments
+            .Where(d => d.IsActive)
+            .OrderBy(d => d.DepartmentName)
+            .ToListAsync();
+    }
+
+    private async Task SearchTransactions()
+    {
+        var query = Context.Transactions
+            .Include(t => t.Item)
+            .Include(t => t.Department)
+            .AsQueryable();
+
+        // 日付範囲フィルター
+        var startDateTime = startDate.Date;
+        var endDateTime = endDate.Date.AddDays(1);
+        query = query.Where(t => t.ProcessedAt >= startDateTime && t.ProcessedAt < endDateTime);
+
+        // 物品フィルター
+        if (selectedItemId > 0)
+        {
+            query = query.Where(t => t.ItemId == selectedItemId);
+        }
+
+        // 部署フィルター
+        if (selectedDepartmentId > 0)
+        {
+            query = query.Where(t => t.DepartmentId == selectedDepartmentId);
+        }
+
+        // 取引種別フィルター
+        if (!string.IsNullOrEmpty(selectedTransactionType))
+        {
+            query = query.Where(t => t.TransactionType == selectedTransactionType);
+        }
+
+        // 取消状態フィルター
+        if (!showCancelled)
+        {
+            query = query.Where(t => !t.IsCancelled);
+        }
+
+        transactions = await query.ToListAsync();
+    }
+
+    private void ClearFilters()
+    {
+        startDate = DateTime.Today.AddMonths(-1);
+        endDate = DateTime.Today;
+        selectedItemId = 0;
+        selectedDepartmentId = 0;
+        selectedTransactionType = "";
+        showCancelled = false;
+    }
+
+    private async Task ExportToCsv()
+    {
+        if (transactions == null || !transactions.Any()) return;
+
+        var csv = new System.Text.StringBuilder();
+        csv.AppendLine("日時,物品名,物品コード,部署,取引種別,数量,処理前在庫,処理後在庫,処理者,備考,状態");
+
+        foreach (var trans in transactions.OrderByDescending(t => t.ProcessedAt))
+        {
+            var status = trans.IsCancelled ? "取消済" : "有効";
+            csv.AppendLine($"{trans.ProcessedAt:yyyy/MM/dd HH:mm},{trans.Item.ItemName},{trans.Item.ItemCode},{trans.Department.DepartmentName},{(trans.TransactionType == "IN" ? "入庫" : "出庫")},{trans.Quantity},{trans.BeforeStock},{trans.AfterStock},{trans.ProcessedBy},{trans.Remarks},{status}");
+        }
+
+        var fileName = $"取引履歴_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
+        var base64 = Convert.ToBase64String(bytes);
+
+        await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64);
+    }
+}
+
+<script>
+    window.downloadFile = (fileName, base64Data) => {
+        const link = document.createElement('a');
+        link.href = 'data:text/csv;base64,' + base64Data;
+        link.download = fileName;
+        link.click();
+    };
+</script>

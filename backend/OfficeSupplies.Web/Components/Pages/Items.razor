@@ -1,0 +1,259 @@
+@page "/items"
+@using Microsoft.EntityFrameworkCore
+@using OfficeSupplies.Core.Entities
+@using OfficeSupplies.Infrastructure.Data
+@inject OfficeSuppliesContext Context
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>物品管理</PageTitle>
+
+<h3>物品管理</h3>
+
+<div class="row mb-3">
+    <div class="col">
+        <button class="btn btn-primary" @onclick="ShowAddModal">
+            <i class="bi bi-plus"></i> 新規登録
+        </button>
+    </div>
+</div>
+
+@if (items == null)
+{
+    <p><em>読み込み中...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>物品コード</th>
+                <th>物品名</th>
+                <th>説明</th>
+                <th>単位</th>
+                <th>現在庫</th>
+                <th>最小在庫</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in items)
+            {
+                <tr>
+                    <td>@item.ItemCode</td>
+                    <td>@item.ItemName</td>
+                    <td>@item.ItemDescription</td>
+                    <td>@item.Unit</td>
+                    <td class="@(item.CurrentStock <= item.MinimumStock ? "text-danger fw-bold" : "")">
+                        @item.CurrentStock
+                    </td>
+                    <td>@item.MinimumStock</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" @onclick="() => GenerateQRCode(item)">
+                            <i class="bi bi-qr-code"></i> QR
+                        </button>
+                        <button class="btn btn-sm btn-warning" @onclick="() => ShowEditModal(item)">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- 新規登録/編集モーダル -->
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEdit ? "物品編集" : "物品新規登録")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@currentItem" OnValidSubmit="@SaveItem">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-3">
+                            <label class="form-label">物品コード</label>
+                            <InputText class="form-control" @bind-Value="currentItem.ItemCode" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">物品名</label>
+                            <InputText class="form-control" @bind-Value="currentItem.ItemName" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">説明</label>
+                            <InputTextArea class="form-control" @bind-Value="currentItem.ItemDescription" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">単位</label>
+                            <InputText class="form-control" @bind-Value="currentItem.Unit" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">最小在庫数</label>
+                            <InputNumber class="form-control" @bind-Value="currentItem.MinimumStock" />
+                        </div>
+
+                        @if (isEdit)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">現在庫数</label>
+                                <InputNumber class="form-control" @bind-Value="currentItem.CurrentStock" />
+                            </div>
+                        }
+
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <button type="button" class="btn btn-secondary" @onclick="CloseModal">キャンセル</button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+<!-- QRコード表示モーダル -->
+@if (showQRModal)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">QRコード - @qrItem?.ItemName</h5>
+                    <button type="button" class="btn-close" @onclick="CloseQRModal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    @if (!string.IsNullOrEmpty(qrCodeBase64))
+                    {
+                        <img src="@qrCodeBase64" alt="QR Code" />
+                        <div class="mt-3">
+                            <p>物品コード: @qrItem?.ItemCode</p>
+                            <button class="btn btn-primary" @onclick="PrintQRCode">
+                                <i class="bi bi-printer"></i> 印刷
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private List<Item>? items;
+    private bool showModal = false;
+    private bool showQRModal = false;
+    private bool isEdit = false;
+    private Item currentItem = new Item();
+    private Item? qrItem;
+    private string? qrCodeBase64;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadItems();
+    }
+
+    private async Task LoadItems()
+    {
+        items = await Context.Items
+            .Where(i => i.IsActive)
+            .OrderBy(i => i.ItemName)
+            .ToListAsync();
+    }
+
+    private void ShowAddModal()
+    {
+        currentItem = new Item();
+        isEdit = false;
+        showModal = true;
+    }
+
+    private void ShowEditModal(Item item)
+    {
+        currentItem = new Item
+        {
+            ItemId = item.ItemId,
+            ItemCode = item.ItemCode,
+            ItemName = item.ItemName,
+            ItemDescription = item.ItemDescription,
+            Unit = item.Unit,
+            CurrentStock = item.CurrentStock,
+            MinimumStock = item.MinimumStock,
+            IsActive = item.IsActive,
+            CreatedAt = item.CreatedAt
+        };
+        isEdit = true;
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+    }
+
+    private async Task SaveItem()
+    {
+        if (isEdit)
+        {
+            var item = await Context.Items.FindAsync(currentItem.ItemId);
+            if (item != null)
+            {
+                item.ItemCode = currentItem.ItemCode;
+                item.ItemName = currentItem.ItemName;
+                item.ItemDescription = currentItem.ItemDescription;
+                item.Unit = currentItem.Unit;
+                item.CurrentStock = currentItem.CurrentStock;
+                item.MinimumStock = currentItem.MinimumStock;
+                item.UpdatedAt = DateTime.Now;
+            }
+        }
+        else
+        {
+            currentItem.CreatedAt = DateTime.Now;
+            currentItem.UpdatedAt = DateTime.Now;
+            Context.Items.Add(currentItem);
+        }
+
+        await Context.SaveChangesAsync();
+        await LoadItems();
+        CloseModal();
+    }
+
+    private void GenerateQRCode(Item item)
+    {
+        qrItem = item;
+        
+        using (var qrGenerator = new QRCoder.QRCodeGenerator())
+        {
+            var qrCodeData = qrGenerator.CreateQrCode(item.ItemCode, QRCoder.QRCodeGenerator.ECCLevel.Q);
+            using (var qrCode = new QRCoder.PngByteQRCode(qrCodeData))
+            {
+                byte[] qrCodeImage = qrCode.GetGraphic(20);
+                qrCodeBase64 = $"data:image/png;base64,{Convert.ToBase64String(qrCodeImage)}";
+            }
+        }
+        
+        showQRModal = true;
+    }
+
+    private void CloseQRModal()
+    {
+        showQRModal = false;
+        qrCodeBase64 = null;
+        qrItem = null;
+    }
+
+    private async Task PrintQRCode()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
+}

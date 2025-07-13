@@ -1,0 +1,181 @@
+@page "/"
+@using Microsoft.EntityFrameworkCore
+@using OfficeSupplies.Core.Entities
+@using OfficeSupplies.Infrastructure.Data
+@inject OfficeSuppliesContext Context
+@rendermode InteractiveServer
+
+<PageTitle>ホーム - 事務用品管理システム</PageTitle>
+
+<h1>事務用品管理システム</h1>
+
+<div class="row mt-4">
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">物品数</h5>
+                <p class="card-text display-6">@itemCount</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">部署数</h5>
+                <p class="card-text display-6">@departmentCount</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">在庫不足</h5>
+                <p class="card-text display-6">@lowStockCount</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">今月の取引</h5>
+                <p class="card-text display-6">@monthlyTransactionCount</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-lg-6">
+        <h3>在庫不足の物品</h3>
+        @if (lowStockItems == null)
+        {
+            <p><em>読み込み中...</em></p>
+        }
+        else if (!lowStockItems.Any())
+        {
+            <p>在庫不足の物品はありません。</p>
+        }
+        else
+        {
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>物品名</th>
+                        <th>現在庫</th>
+                        <th>最小在庫</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in lowStockItems)
+                    {
+                        <tr>
+                            <td>@item.ItemName</td>
+                            <td class="text-danger fw-bold">@item.CurrentStock</td>
+                            <td>@item.MinimumStock</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+    
+    <div class="col-lg-6">
+        <h3>最近の取引</h3>
+        @if (recentTransactions == null)
+        {
+            <p><em>読み込み中...</em></p>
+        }
+        else if (!recentTransactions.Any())
+        {
+            <p>取引履歴がありません。</p>
+        }
+        else
+        {
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>日時</th>
+                        <th>物品名</th>
+                        <th>部署</th>
+                        <th>種別</th>
+                        <th>数量</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var trans in recentTransactions)
+                    {
+                        <tr>
+                            <td>@trans.ProcessedAt.ToString("MM/dd HH:mm")</td>
+                            <td>@trans.Item.ItemName</td>
+                            <td>@trans.Department.DepartmentName</td>
+                            <td>
+                                @if (trans.TransactionType == "IN")
+                                {
+                                    <span class="badge bg-success">入庫</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">出庫</span>
+                                }
+                            </td>
+                            <td>@trans.Quantity</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    private int itemCount;
+    private int departmentCount;
+    private int lowStockCount;
+    private int monthlyTransactionCount;
+    private List<Item>? lowStockItems;
+    private List<Transaction>? recentTransactions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        // 物品数
+        itemCount = await Context.Items.Where(i => i.IsActive).CountAsync();
+        
+        // 部署数
+        departmentCount = await Context.Departments.Where(d => d.IsActive).CountAsync();
+        
+        // 在庫不足数
+        lowStockCount = await Context.Items
+            .Where(i => i.IsActive && i.CurrentStock <= i.MinimumStock)
+            .CountAsync();
+        
+        // 今月の取引数
+        var startOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+        monthlyTransactionCount = await Context.Transactions
+            .Where(t => t.ProcessedAt >= startOfMonth && !t.IsCancelled)
+            .CountAsync();
+        
+        // 在庫不足の物品リスト
+        lowStockItems = await Context.Items
+            .Where(i => i.IsActive && i.CurrentStock <= i.MinimumStock)
+            .OrderBy(i => i.CurrentStock)
+            .Take(5)
+            .ToListAsync();
+        
+        // 最近の取引
+        recentTransactions = await Context.Transactions
+            .Include(t => t.Item)
+            .Include(t => t.Department)
+            .Where(t => !t.IsCancelled)
+            .OrderByDescending(t => t.ProcessedAt)
+            .Take(10)
+            .ToListAsync();
+    }
+}
