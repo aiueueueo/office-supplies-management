@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeSupplies.Infrastructu
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeSupplies.Web", "OfficeSupplies.Web\OfficeSupplies.Web.csproj", "{21FC21ED-ABC3-4602-A459-441858DECB81}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeSupplies.Mobile.MAUI", "OfficeSupplies.Mobile.MAUI\OfficeSupplies.Mobile.MAUI.csproj", "{A73B3826-DD6E-48C3-B2C8-BB9E2D6D659D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{21FC21ED-ABC3-4602-A459-441858DECB81}.Release|x64.Build.0 = Release|Any CPU
 		{21FC21ED-ABC3-4602-A459-441858DECB81}.Release|x86.ActiveCfg = Release|Any CPU
 		{21FC21ED-ABC3-4602-A459-441858DECB81}.Release|x86.Build.0 = Release|Any CPU
+		{A73B3826-DD6E-48C3-B2C8-BB9E2D6D659D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A73B3826-DD6E-48C3-B2C8-BB9E2D6D659D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A73B3826-DD6E-48C3-B2C8-BB9E2D6D659D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A73B3826-DD6E-48C3-B2C8-BB9E2D6D659D}.Debug|x64.Build.0 = Debug|Any CPU
+		{A73B3826-DD6E-48C3-B2C8-BB9E2D6D659D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A73B3826-DD6E-48C3-B2C8-BB9E2D6D659D}.Debug|x86.Build.0 = Debug|Any CPU
+		{A73B3826-DD6E-48C3-B2C8-BB9E2D6D659D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A73B3826-DD6E-48C3-B2C8-BB9E2D6D659D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A73B3826-DD6E-48C3-B2C8-BB9E2D6D659D}.Release|x64.ActiveCfg = Release|Any CPU
+		{A73B3826-DD6E-48C3-B2C8-BB9E2D6D659D}.Release|x64.Build.0 = Release|Any CPU
+		{A73B3826-DD6E-48C3-B2C8-BB9E2D6D659D}.Release|x86.ActiveCfg = Release|Any CPU
+		{A73B3826-DD6E-48C3-B2C8-BB9E2D6D659D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
