@@ -36,14 +36,6 @@ More information: https://aka.ms/maui-privacy-manifest
                 <string>E174.1</string>
             </array>
         </dict>
-        <dict>
-            <key>NSPrivacyAccessedAPIType</key>
-            <string>NSPrivacyAccessedAPICategoryCamera</string>
-            <key>NSPrivacyAccessedAPITypeReasons</key>
-            <array>
-                <string>C610.1</string>
-            </array>
-        </dict>
         <!--
             The entry below is only needed when you're using the Preferences API in your app.
         <dict>
