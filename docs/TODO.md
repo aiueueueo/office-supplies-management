@@ -114,6 +114,14 @@
   - ログレベル調整
   - セキュリティ設定強化
 
+- [ ] **MAUIアプリケーションマニフェスト更新**
+  - `Package.appxmanifest`のプレースホルダー値を実際の値に置換
+  - Identity Name: `maui-package-name-placeholder` → `OfficeSupplies.Mobile.MAUI`
+  - Publisher: `CN=User Name` → `CN=YourCompany`（実際の発行者名）
+  - Version: `0.0.0.0` → `1.0.0.0`
+  - DisplayName: プレースホルダー → `事務用品管理`
+  - Logo: デフォルトロゴ → 実際のアプリケーションロゴ
+
 - [ ] **Flutter本番ビルド**
   - リリースモードでのAPKビルド
   - 署名設定
