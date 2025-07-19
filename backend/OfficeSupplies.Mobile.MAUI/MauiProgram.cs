@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using OfficeSupplies.Infrastructure.Data;
 using OfficeSupplies.Mobile.MAUI.Repositories.Interfaces;
@@ -7,6 +8,7 @@ using OfficeSupplies.Mobile.MAUI.Services.Interfaces;
 using OfficeSupplies.Mobile.MAUI.Services.Implementations;
 using ZXing.Net.Maui.Controls;
 using CommunityToolkit.Maui;
+using System.Reflection;
 
 namespace OfficeSupplies.Mobile.MAUI;
 
@@ -25,8 +27,20 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
+        // Configuration
+        var assembly = Assembly.GetExecutingAssembly();
+        using var stream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.appsettings.json");
+        
+        var configuration = new ConfigurationBuilder()
+            .AddJsonStream(stream!)
+            .Build();
+        
+        builder.Configuration.AddConfiguration(configuration);
+
         // Database
-        var connectionString = "Server=(localdb)\\mssqllocaldb;Database=OfficeSupplies;Trusted_Connection=true;";
+        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+        
         builder.Services.AddDbContext<OfficeSuppliesContext>(options =>
             options.UseSqlServer(connectionString));
 
@@ -51,6 +65,9 @@ public static class MauiProgram
         // iOS specific services will be added here
 #elif WINDOWS
         // Windows specific services will be added here
+#else
+        // Mock service for testing and development
+        builder.Services.AddSingleton<IBarcodeService, MockBarcodeService>();
 #endif
 
 #if DEBUG

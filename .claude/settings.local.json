@@ -4,7 +4,8 @@
       "Bash(dir:*)",
       "Bash(git checkout:*)",
       "Bash(dotnet new:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }
