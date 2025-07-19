@@ -4,16 +4,16 @@
 事務用品の在庫管理を行うシステムです。バーコード/QRコードを使用した出庫処理と、Web画面での在庫管理機能を提供します。
 
 ## システム構成
-- **backend/**: ASP.NET Core Web API + Blazor Server（管理画面）
-- **mobile/**: Flutter（Android端末用アプリ）
+- **backend/**: ASP.NET Core Web API + Blazor Server（管理画面）+ .NET MAUI（出庫端末アプリ）
+- **mobile/**: Flutter（Android端末用アプリ - 廃止予定）
 - **database/**: SQL Serverスキーマ・スクリプト
 - **docs/**: ドキュメント
 
 ## 技術スタック
 - Backend: ASP.NET Core 8.0, Blazor Server, Entity Framework Core
-- Mobile: Flutter
+- Mobile: Flutter（廃止予定）, .NET MAUI（Android/Windows対応）
 - Database: SQL Server
-- バーコード: ZXing (Flutter), QRCoder (Blazor)
+- バーコード: ZXing (Flutter), ZXing.Net.Maui (MAUI), QRCoder (Blazor)
 
 ## Claude Code設定
 
@@ -66,9 +66,10 @@ office-supplies-management/
 │   ├── OfficeSupplies.Api/          # Web API
 │   ├── OfficeSupplies.Core/         # エンティティ
 │   ├── OfficeSupplies.Infrastructure/ # データベース
-│   └── OfficeSupplies.Web/          # Blazor管理画面
+│   ├── OfficeSupplies.Web/          # Blazor管理画面
+│   └── OfficeSupplies.Mobile.MAUI/  # MAUI出庫端末（Android/Windows）
 ├── mobile/
-│   └── office_supplies_mobile/      # Flutter出庫端末
+│   └── office_supplies_mobile/      # Flutter出庫端末（廃止予定）
 ├── database/
 │   ├── schema/                      # テーブル定義
 │   └── seed/                        # 初期データ
@@ -83,4 +84,5 @@ office-supplies-management/
 ### 注意事項
 - データベース接続文字列は環境に応じて調整が必要
 - Flutterアプリのカメラスキャン機能は現在テスト用ダミー実装
+- MAUIアプリのバーコードスキャン機能は開発・テスト環境でモック実装を使用（Android環境下のみ）
 - 本番運用前にセキュリティ設定の見直しが必要
