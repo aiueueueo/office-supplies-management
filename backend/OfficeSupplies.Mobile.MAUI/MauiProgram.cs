@@ -61,8 +61,6 @@ public static class MauiProgram
         // Platform-specific services
 #if ANDROID
         // Android specific services will be added here
-#elif IOS
-        // iOS specific services will be added here
 #elif WINDOWS
         // Windows specific services will be added here
 #else
