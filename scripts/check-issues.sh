@@ -24,9 +24,11 @@ echo "=== GitHub Issues 一覧 ==="
 gh issue list --repo "${REPO}" --limit 10
 
 echo -e "\n=== 最新のIssue詳細 ==="
+# 最新 Issue 番号を取得
 LATEST_ISSUE=$(gh issue list --repo "${REPO}" --limit 1 --json number --jq '.[0].number' || echo "")
-if [ -n "${LATEST_ISSUE}" ]; then
-    gh issue view "${LATEST_ISSUE}" --repo "${REPO}"
+
+if [[ -n $LATEST_ISSUE ]]; then
+    gh issue view "$LATEST_ISSUE" --repo "$REPO"
 else
-    echo "No issues found in the repository."
+    echo "最新の Issue は存在しません。"
 fi
