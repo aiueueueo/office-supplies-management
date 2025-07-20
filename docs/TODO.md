@@ -1,5 +1,37 @@
 # 事務用品管理システム TODO
 
+## 🔧 .kiro Flutter-to-MAUI Migration タスク（最優先）
+
+### MAUI プロジェクト完成への残作業
+- [ ] **Task 5: ViewModels実装**
+  - MainPageViewModel（部署選択、アプリ終了）
+  - ScanPageViewModel（バーコードスキャン、カメラ制御）
+  - StockOutPageViewModel（出庫処理、数量入力）
+  - ConfirmationPageViewModel（確認画面、取消機能）
+
+- [ ] **Task 6: Views（XAML）実装**
+  - MainPage.xaml（部署選択UI）
+  - ScanPage.xaml（カメラスキャン画面）
+  - StockOutPage.xaml（出庫処理画面）
+  - ConfirmationPage.xaml（確認・完了画面）
+
+- [ ] **Task 7: Navigation実装**
+  - Shell-based navigation設定
+  - ページ間の画面遷移実装
+  - データ受け渡し機能
+
+- [ ] **Task 8: Platform実装**
+  - Android: カメラサービス実装
+  - Windows: モック/代替バーコード入力機能
+  - Platform-specific dependencies registration
+
+- [ ] **Task 9: 統合テスト・検証**
+  - Android実機でのE2Eテスト
+  - Windows環境での動作確認
+  - Error handling・UX改善
+
+---
+
 ## 必須作業（システム動作に必要）
 
 ### 1. API側の追加エンドポイント実装
