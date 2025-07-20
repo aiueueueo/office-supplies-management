@@ -56,8 +56,8 @@ public class TransactionService : ITransactionService
             _logger.LogInformation("取引作成開始: ItemId={ItemId}, DepartmentId={DepartmentId}, Quantity={Quantity}", 
                 transaction.ItemId, transaction.DepartmentId, transaction.Quantity);
 
-            // タイムスタンプの設定
-            var now = DateTime.Now;
+            // タイムスタンプの設定（UTC時刻使用）
+            var now = DateTime.UtcNow;
             transaction.CreatedAt = now;
             transaction.UpdatedAt = now;
             transaction.TransactionDate = now;

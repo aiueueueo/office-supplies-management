@@ -38,7 +38,7 @@ public class ItemRepository : BaseRepository<Item>, IItemRepository
                 }
 
                 item.CurrentStock = newStock;
-                item.UpdatedAt = DateTime.Now;
+                item.UpdatedAt = DateTime.UtcNow;
 
                 await UpdateAsync(item);
                 var result = await SaveChangesAsync();

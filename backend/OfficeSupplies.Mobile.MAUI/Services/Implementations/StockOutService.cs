@@ -79,12 +79,12 @@ public class StockOutService : IStockOutService
                 DepartmentId = request.DepartmentId,
                 TransactionType = "出庫",
                 Quantity = request.Quantity,
-                TransactionDate = DateTime.Now,
+                TransactionDate = DateTime.UtcNow,
                 ProcessedBy = request.ProcessedBy,
                 Remarks = request.Remarks,
                 IsCancelled = false,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
 
             var createdTransaction = await _transactionService.CreateTransactionAsync(transaction);
